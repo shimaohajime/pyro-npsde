@@ -51,21 +51,17 @@ class NPSDE():
         self.n_vars = len(vars)
 
         ##Hyperparameters, either fixed or learned.
-        self.sf_f = sf_f if fix_sf else pyro.param('sf_f', sf_f)
-        self.sf_g = sf_g if fix_sf else pyro.param('sf_g', sf_g)
-        self.ell_f = ell_f if fix_ell else pyro.param('ell_f', ell_f)
-        self.ell_g = ell_g if fix_ell else pyro.param('ell_g', ell_g)
-        self.Z = Z if fix_Z else pyro.param('Z', Z)
+        self.sf_f = sf_f 
+        self.sf_g = sf_g 
+        self.ell_f = ell_f 
+        self.ell_g = ell_g 
+        self.Z = Z 
         self.Zg = self.Z #Inducing location for drift and diffusion are set same.
 
         ##For save_model
         self.fix_sf = fix_sf 
         self.fix_ell = fix_ell 
         self.fix_Z = fix_Z 
-
-        ##Define kernels
-        self.kernel_f = Kernel(self.sf_f, self.ell_f)
-        self.kernel_g = Kernel(self.sf_g, self.ell_g)
 
         self.n_grid = Z.shape[0]
         self.delta_t = delta_t #Euler-Maruyama time discretization.
@@ -116,6 +112,17 @@ class NPSDE():
         t_max = X[:,0].max()
         t_grid = np.arange(1,t_max+1)
 
+        sf_f = self.sf_f if self.fix_sf else pyro.param('sf_f', self.sf_f)
+        sf_g = self.sf_g if self.fix_sf else pyro.param('sf_g', self.sf_g)
+        ell_f = self.ell_f if self.fix_ell else pyro.param('ell_f', self.ell_f)
+        ell_g = self.ell_g if self.fix_ell else pyro.param('ell_g', self.ell_g)
+        Z = self.Z if self.fix_Z else pyro.param('Z', self.Z)
+        Zg = self.Zg if self.fix_Z else pyro.param('Z', self.Z)
+
+        ##Define kernels
+        kernel_f = Kernel(sf_f, ell_f)
+        kernel_g = Kernel(sf_g, ell_g)
+
         ##Inducing vectors, which are the main parameters to be estimated
         U = pyro.sample('U', dist.Normal(torch.zeros([self.n_grid,self.n_vars]), torch.ones([self.n_grid,self.n_vars]) ).to_event(1).to_event(1) ) #Prior should be matched to Yildiz?
         Ug = pyro.sample('Ug', dist.Normal(torch.ones([self.n_grid,self.n_vars]), torch.ones([self.n_grid,self.n_vars] )).to_event(1).to_event(1) )#,constraint=constraints.positive #Prior should be matched to Yildiz?
@@ -127,7 +134,7 @@ class NPSDE():
         Xt = torch.tensor(X[X[:,0]==1][:, 1:])
         timestamps = np.arange(self.delta_t, t_max+self.delta_t, self.delta_t) 
         for i, t in enumerate(timestamps):
-            f,g = self.calc_drift_diffusion(Xt, U, Ug, self.Z, self.Zg, self.kernel_f, self.kernel_g)
+            f,g = self.calc_drift_diffusion(Xt, U, Ug, Z, Zg, kernel_f, kernel_g)
             Xt = pyro.sample('Xseq_{}'.format(i), dist.Normal(Xt + f * self.delta_t, g * torch.sqrt(torch.tensor([self.delta_t])) ).to_event(1).to_event(1)   )#Needs to be MultiVariate and iterate over sample to allow covariance.
             ##For t in the observed time step, find the observed variables and condition on the data.
             if t in t_grid:
@@ -146,6 +153,19 @@ class NPSDE():
         '''
 
         t_max = X[:,0].max()
+
+        sf_f = self.sf_f if self.fix_sf else pyro.param('sf_f', self.sf_f)
+        sf_g = self.sf_g if self.fix_sf else pyro.param('sf_g', self.sf_g)
+        ell_f = self.ell_f if self.fix_ell else pyro.param('ell_f', self.ell_f)
+        ell_g = self.ell_g if self.fix_ell else pyro.param('ell_g', self.ell_g)
+        Z = self.Z if self.fix_Z else pyro.param('Z', self.Z)
+        Zg = self.Zg if self.fix_Z else pyro.param('Z', self.Z)
+
+        ##Define kernels
+        kernel_f = Kernel(sf_f, ell_f)
+        kernel_g = Kernel(sf_g, ell_g)
+
+
         ##MAP estimate of parameters
         U_map = pyro.param('U_map', torch.zeros([self.n_grid,self.n_vars]) )
         #Ug_map = pyro.param('Ug_map', torch.ones([n_grid**2,2])*torch.sqrt(torch.tensor(2) )/torch.tensor(np.pi)  )#, constraint=constraints.positive
@@ -160,7 +180,7 @@ class NPSDE():
 
         # Xs = torch.zeros([X.shape[0], len(timestamps), X.shape[1]]) # N x t x D 
         for i,t in enumerate(timestamps):
-            f,g = self.calc_drift_diffusion(Xt, U, Ug, self.Z, self.Zg, self.kernel_f, self.kernel_g)
+            f,g = self.calc_drift_diffusion(Xt, U, Ug, Z, Zg, kernel_f, kernel_g)
             Xt = pyro.sample('Xseq_{}'.format(i), dist.Normal(Xt + f * self.delta_t, g * torch.sqrt(torch.tensor([self.delta_t])) ).to_event(1).to_event(1)  )#Needs to be MultiVariate and iterate over sample to allow covariance.
         #     Xs[:, i, :] = X 
 
@@ -193,7 +213,6 @@ class NPSDE():
             Xs[:, :, :,  i+1] = pred[time].detach()
 
         
-
         return Xs 
 
     def save_model(self, path):
@@ -210,10 +229,11 @@ class NPSDE():
 
         pyro.get_param_store().clear()
         pyro.get_param_store().load(os.path.join(os.path.dirname(path), os.path.splitext(filename)[0] + '_params' + os.path.splitext(filename)[1]))
+
         metadata = torch.load(path)
 
         constr_args = [
-            metadata['constants'][param] if param in metadata['constants'] else pyro.get_param_store().get_param(param) for param in NPSDE.hyperparameters
+            metadata['constants'][param] if param in metadata['constants'] else pyro.get_param_store().get_param(param).detach() for param in NPSDE.hyperparameters
         ]
 
         # Create new npsde object and attach fields to params 
@@ -234,6 +254,12 @@ class NPSDE():
             Zg = self.Zg.detach() 
             U = pyro.get_param_store().get_param('U_map').detach() 
             Ug = pyro.get_param_store().get_param('Ug_map').detach() 
+            sf_f = self.sf_f if self.fix_sf else pyro.param('sf_f', self.sf_f).detach() 
+            sf_g = self.sf_g if self.fix_sf else pyro.param('sf_g', self.sf_g).detach() 
+            ell_f = self.ell_f if self.fix_ell else pyro.param('ell_f', self.ell_f).detach() 
+            ell_g = self.ell_g if self.fix_ell else pyro.param('ell_g', self.ell_g).detach() 
+            kernel_f = Kernel(sf_f, ell_f)
+            kernel_g = Kernel(sf_g, ell_g)
 
         complete_data = X
         complete_data = complete_data[~np.isnan(complete_data).any(axis=1), :]
@@ -274,7 +300,7 @@ class NPSDE():
 
         Zs = np.array([xvv.T.flatten(),yvv.T.flatten()], dtype=np.float32).T
 
-        f,g = self.calc_drift_diffusion(Zs, U, Ug, self.Z, self.Zg, self.kernel_f, self.kernel_g)
+        f,g = self.calc_drift_diffusion(Zs, U, Ug, Z, Zg, kernel_f, kernel_g)
 
         # f = self.unwhiten_U(f, Zs, self.kernel_f)
         # g = self.unwhiten_U(g, Zs, self.kernel_g)
@@ -339,7 +365,7 @@ if __name__ == '__main__':
 
     # pyro.clear_param_store()
 
-    # Zx_, Zy_ = np.meshgrid( np.linspace(df['PCA0'].min(), df['PCA0'].max(),5), np.linspace(df['PCA1'].min(), df['PCA1'].max(),5) )
+    # Zx_, Zy_ = np.meshgrid( np.linspace(df['PCA0'].min(), df['PCA0'].max(),3), np.linspace(df['PCA1'].min(), df['PCA1'].max(),3) )
     # Z = torch.tensor( np.c_[Zx_.flatten(), Zy_.flatten()].astype(np.float32) )
 
     # npsde = NPSDE(vars=components,sf_f=torch.tensor(1,dtype=torch.float32),sf_g=torch.tensor(1,dtype=torch.float32),ell_f=torch.tensor([1,1],dtype=torch.float32),ell_g=torch.tensor([1,1],dtype=torch.float32),Z=Z,fix_sf=False,fix_ell=True,fix_Z=False,delta_t=.1,jitter=1e-6)
