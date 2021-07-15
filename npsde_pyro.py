@@ -641,44 +641,45 @@ def pyro_npsde_run(csv_input, columns, steps, lr, Nw, sf_f,sf_g, ell_f, ell_g, W
 
 
 if __name__ == '__main__':
-    df = pd.read_csv('data/seshat/Seshat_old_pca.csv')
-    components =['PCA0','PCA1']
-    df['time'] = df[['NGA','Time']].groupby('NGA').transform(lambda x: (x - x.min()) / 100. )['Time']
+    pyro_npsde_run('data/seshat/Seshat_old_pca.csv', ['PCA0', 'PCA1'], 2000, 0.01, 1, 1, 1, [1,1], [1,1], 5, False, False, False, 0.1, "model1")
+    # df = pd.read_csv('data/seshat/Seshat_old_pca.csv')
+    # components =['PCA0','PCA1']
+    # df['time'] = df[['NGA','Time']].groupby('NGA').transform(lambda x: (x - x.min()) / 100. )['Time']
 
-    nga_tmax=df[['NGA', 'time']].groupby('NGA')['time'].max()
-    filled_nga = np.concatenate([[nga_tmax.index[i]] * int(nga_tmax.values[i]) for i in range(nga_tmax.shape[0])])
-    filled_t = np.concatenate([np.arange(int(nga_tmax.values[i])).tolist() for i in range(nga_tmax.shape[0])])
+    # nga_tmax=df[['NGA', 'time']].groupby('NGA')['time'].max()
+    # filled_nga = np.concatenate([[nga_tmax.index[i]] * int(nga_tmax.values[i]) for i in range(nga_tmax.shape[0])])
+    # filled_t = np.concatenate([np.arange(int(nga_tmax.values[i])).tolist() for i in range(nga_tmax.shape[0])])
 
-    filled_df = pd.DataFrame({'time' : filled_t, 'NGA': filled_nga})
-    filled_df = filled_df.merge(df, how='left')
+    # filled_df = pd.DataFrame({'time' : filled_t, 'NGA': filled_nga})
+    # filled_df = filled_df.merge(df, how='left')
 
-    t_max = df['time'].max()
-    t_grid = np.arange(t_max)
+    # t_max = df['time'].max()
+    # t_grid = np.arange(t_max)
 
-    unit_list = df.NGA.unique()
-    nga_grid = np.array( [ [i]*len(t_grid) for i in  unit_list ] ).flatten()
-    balanced_df = pd.DataFrame( {'time':np.tile(t_grid, len(unit_list)), 'NGA':nga_grid} )
-    balanced_df = balanced_df.merge(df,how='left')
+    # unit_list = df.NGA.unique()
+    # nga_grid = np.array( [ [i]*len(t_grid) for i in  unit_list ] ).flatten()
+    # balanced_df = pd.DataFrame( {'time':np.tile(t_grid, len(unit_list)), 'NGA':nga_grid} )
+    # balanced_df = balanced_df.merge(df,how='left')
 
-    X = balanced_df[['time'] + components].to_numpy(dtype=np.float32)
-    X2 = filled_df[['time'] + components].to_numpy(dtype=np.float32)
-    # # pyro.clear_param_store()
+    # X = balanced_df[['time'] + components].to_numpy(dtype=np.float32)
+    # X2 = filled_df[['time'] + components].to_numpy(dtype=np.float32)
+    # # # pyro.clear_param_store()
 
-    # # Zx_, Zy_ = np.meshgrid( np.linspace(df['PCA0'].min(), df['PCA0'].max(),3), np.linspace(df['PCA1'].min(), df['PCA1'].max(),3) )
-    # # Z = torch.tensor( np.c_[Zx_.flatten(), Zy_.flatten()].astype(np.float32) )
+    # # # Zx_, Zy_ = np.meshgrid( np.linspace(df['PCA0'].min(), df['PCA0'].max(),3), np.linspace(df['PCA1'].min(), df['PCA1'].max(),3) )
+    # # # Z = torch.tensor( np.c_[Zx_.flatten(), Zy_.flatten()].astype(np.float32) )
 
-    # # npsde = NPSDE(vars=components,sf_f=torch.tensor(1,dtype=torch.float32),sf_g=torch.tensor(1,dtype=torch.float32),ell_f=torch.tensor([1,1],dtype=torch.float32),ell_g=torch.tensor([1,1],dtype=torch.float32),Z=Z,fix_sf=False,fix_ell=True,fix_Z=False,delta_t=.1,jitter=1e-6)
+    # # # npsde = NPSDE(vars=components,sf_f=torch.tensor(1,dtype=torch.float32),sf_g=torch.tensor(1,dtype=torch.float32),ell_f=torch.tensor([1,1],dtype=torch.float32),ell_g=torch.tensor([1,1],dtype=torch.float32),Z=Z,fix_sf=False,fix_ell=True,fix_Z=False,delta_t=.1,jitter=1e-6)
 
-    # # npsde.train(X, n_steps=3, Nw=1)
+    # # # npsde.train(X, n_steps=3, Nw=1)
 
-    # # npsde.save_model('model1.pt')
+    # # # npsde.save_model('model1.pt')
 
-    npsde = NPSDE.load_model('model1.pt')
+    # npsde = NPSDE.load_model('model1.pt')
 
-    imputed_X = npsde.impute(X2, 0.5, 0.1, 0.1, max_steps=5)
-    # flatten list 
-    imputed_X = np.array([ imputed_X[i][j,:] for i in range(len(imputed_X)) for j in range(len(imputed_X[i]))])
-    imputed_X = imputed_X[~np.isnan(imputed_X).any(axis=1), :]
+    # imputed_X = npsde.impute(X2, 0.5, 0.1, 0.1, max_steps=5)
+    # # flatten list 
+    # imputed_X = np.array([ imputed_X[i][j,:] for i in range(len(imputed_X)) for j in range(len(imputed_X[i]))])
+    # imputed_X = imputed_X[~np.isnan(imputed_X).any(axis=1), :]
 
-    pd.DataFrame(imputed_X).to_csv('imputed.csv')
+    # pd.DataFrame(imputed_X).to_csv('imputed.csv')
 
