@@ -319,9 +319,9 @@ class NPSDE():
             kernel_f = Kernel(sf_f, ell_f)
             kernel_g = Kernel(sf_g, ell_g)
 
-        f,g = self.calc_drift_diffusion(points, U, Ug, Z, Zg, kernel_f, kernel_g)
+            f,g = self.calc_drift_diffusion(points, U, Ug, Z, Zg, kernel_f, kernel_g)
 
-        return f,g 
+            return f,g 
         
     def impute(self, X, tolerance, threshold_u, threshold_ug, Nw=50,max_steps=10):
 
