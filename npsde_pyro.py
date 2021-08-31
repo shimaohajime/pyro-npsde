@@ -176,12 +176,14 @@ class NPSDE():
 
         ##MAP estimate of parameters
         U_map = pyro.param('U_map', torch.zeros([self.n_grid,self.n_vars]) )
-        U_cov_matrix = pyro.param('U_cov_matrix', torch.stack([torch.eye(self.n_vars) for _ in range(self.n_grid)]) , constraint=constraints.positive_definite)
+        # U_cov_matrix = pyro.param('U_cov_matrix', torch.stack([torch.eye(self.n_vars) for _ in range(self.n_grid)]) , constraint=constraints.positive_definite)
         Ug_map = pyro.param('Ug_map', torch.ones([self.n_grid,NPSDE.diffusion_dimensions])  , constraint=constraints.positive)
-        Ug_cov_matrix = pyro.param('Ug_cov_matrix', torch.stack([torch.eye(NPSDE.diffusion_dimensions) for _ in range(self.n_grid)]), constraint=constraints.positive_definite)
+        # Ug_cov_matrix = pyro.param('Ug_cov_matrix', torch.stack([torch.eye(NPSDE.diffusion_dimensions) for _ in range(self.n_grid)]), constraint=constraints.positive_definite)
         
-        U = pyro.sample("U", dist.MultivariateNormal(U_map, U_cov_matrix).to_event(1))
-        Ug = pyro.sample("Ug", dist.MultivariateNormal(Ug_map, Ug_cov_matrix).to_event(1))
+        # U = pyro.sample("U", dist.MultivariateNormal(U_map, U_cov_matrix).to_event(1))
+        # Ug = pyro.sample("Ug", dist.MultivariateNormal(Ug_map, Ug_cov_matrix).to_event(1))
+        U = pyro.sample("U", dist.Delta(U_map).to_event(1).to_event(1))
+        Ug = pyro.sample("Ug", dist.Delta(Ug_map).to_event(1).to_event(1))
 
         ##Euler-Maruyama sampling
         timestamps = np.arange(self.delta_t, t_max+self.delta_t, self.delta_t) 
@@ -206,16 +208,6 @@ class NPSDE():
         # pyro.clear_param_store()
         def dist(p1, p2):
           return np.linalg.norm(p1-p2)
-
-        def bruteForceClosest(P):
-          n = len(P)
-          min_val = float('inf')
-          for i in range(n):
-              for j in range(i + 1, n):
-                  if dist(P[i], P[j]) < min_val:
-                      min_val = dist(P[i], P[j])
-      
-          return min_val
 
         adam = pyro.optim.Adam({"lr": lr})
         Z = self.Z if self.fix_Z else pyro.param('Z', self.Z)
