@@ -1,0 +1,6 @@
+tensorflow==1.15.5
+gpflow==1.1
+pytest
+adjustText
+pyro-ppl
+sklearn

@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "seshat-283705",
+  "private_key_id": "66deb00593c55139c74c7529fd9ea6b0f8897c73",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDGmKXf1JPZRf9z\nQir/zWVni36zF1c19lC3nhixn6HlN69HTn4ZNcp/MDG4RfKJrsFCNhv/KhHDJFPa\nRQhhFgaQIQ/E/t48eNxReEvsRxlaA6NbXIrB6w/Fq7iFdzaMuVS/bl448qwk5sD2\ntXMSEy43ptfO5UGDeDSc+hpRiX/Pspff6hXzXkEluDbtVmXssDve1lDXkeYMyhqB\nQ2Dgg0tTA81Y8FybjJSLdZeCIh1ZOuONEKNlmeEtdDsEjoQZPK22MKctfZ/nP7iH\nULT1HRWrobTbzXz8Yto1LB/ls/eQfVzG2lnvkblXXWIQ8CdwIxru9R5HUp4wuKIt\nSQOO5qonAgMBAAECggEAJpegWExHhOfo2b2IfJgt9f6yGtxUyrw4eE4lL1M9kz0M\ndzdmIsEEvk2fw9b36FCI5rR8IUxMEldbYiWbGL6+fMCn/1il2CuGaOCPJHW2k/r0\nAjuMDV3//SI/I9SESbl0IhUxAzEJScx7wBWHrIIEr7Tg6Cg94G36D208sw6cwz/y\nRjb2w8M3m0DfZDs76jcWK/Wkdd5ZCJqJE5J2ic9SsSzcdw/IH9/uTW0UE94YkUnn\nNtDaG6wc3H71h8yW6qUFGLHLouA1aW43+ZijLziQXQ/Ds+Dub9n9xV8Kst7bVfax\npoAyRyAoZpseka7qX9dM4i7Sc7paUnmIdoNGBgk5RQKBgQDkjV7Q7BNoiyhQmOBy\niZmpzw8prz17ThaUYydNws911BzrLimEEgUY0fVAFKu1W1fCD2BCVZe/aCDe6S7+\nbfxgDD8egcuCsOb+jXW1Rstvt77Hk89Q1AMEV6GI7ZoJJJPsEyd8xtMfpe56f7Mk\nOgCR5h7aDNJkJIb/UP485p2OXQKBgQDeck8v8p5ZeUZYn6/zN5vqLLo/4cSdQqzG\nuyZ0a7+fkvOs1HJgYOxrGo2B/j+mz4OelkLwbzvXkJA3RrL1UR5G74a6o5kaMb2j\nCLportEEtShkQgUkK/vmPZv0sXRFvsI9jOBJh19mbfPpSjsXenxfnbuwnRoFTijA\nrgtYfGtqUwKBgEmQDyKjuaN+lt1KN4PmMiVr1e+OzfUwLyhXucDXoTrFqQExfH9b\n5XQVsCCOBq561gZKOKthLVSYSWw2FcAi2oZ3qqFBGaXZFqB8G5TbUoOE2s0WEDZt\n5wKwyfduspOayFnF2IHa5P1cxSN8ksZoPOK49NkuI1HESAdJpGsptzCpAoGAU/Sy\nvHcGmuBx03sZrmM7nmuZNAki6vPCQBNclS4hmbmd7IoWTRfnwxi3deue3HePxqgR\nxatF27s9Iw+09W/TTJSUthaO71r8pu7hZCcuzmcNQqHETP2oyiJQnU7ognZX22Ez\nOa01LXSsTU1t9hONo4zlzOfObVgte2N09sWmyO8CgYEAi3VziLUn8rRSqoRBSLMC\nkZzQ0oWKs8r2SFPl4PF49TS0ceNH4dXPH+NvxORWdKm2dBkASYjIlUhkDBrwpEGf\n2YUGYZo1AgWIBdRek27KoKbYXq+qPZzFbgy9reNuYwPlgNE5SkAlRTNz5mK8pF27\n82sQ1MYOq3IJ7sJAUMa3WGs=\n-----END PRIVATE KEY-----\n",
+  "client_email": "seshat-bot@seshat-283705.iam.gserviceaccount.com",
+  "client_id": "114629879282712154884",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/seshat-bot%40seshat-283705.iam.gserviceaccount.com"
+}
