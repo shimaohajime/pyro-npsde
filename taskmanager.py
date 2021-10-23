@@ -1,10 +1,11 @@
 import pandas as pd 
 from enum import Enum
+import ast 
 
 class Task:
 
     class TaskStatus(Enum):
-        UNCLAIMED = ""
+        UNCLAIMED = "."
         CLAIMED = "/" 
         IN_PROGRESS = "-" 
         COMPLETED = "*" 
@@ -22,10 +23,10 @@ class Task:
 
         df = pd.read_csv(self.path)
         
-        if df.iloc[self.index, 0] != self.status.name:
-            raise Exception(f"Task status has been modified by other process. Expected: {self.status.name}. Actual {to.name}")
+        if df.iloc[self.index, 0] != self.status.value:
+            raise Exception(f"Task status has been modified by other process. Expected: {self.status.value}. Actual {to.value}")
         
-        df.iloc[self.index, 0] = to 
+        df.iloc[self.index, 0] = to.value 
         df.to_csv(self.path)
         self.status = to 
         
@@ -50,6 +51,9 @@ def fetch_task_from_tasklist(lock, path):
             except:
                 pass 
 
+        df.iloc[index, 0] = Task.TaskStatus.CLAIMED.value 
+        df.to_csv(path)
+
         return Task(lock, path, index, Task.TaskStatus.CLAIMED, row_dict) 
 
     finally:
@@ -61,6 +65,6 @@ def fetch_task_from_tasklist(lock, path):
 def query_remaining_sim(df):
     first_col = df.iloc[:,0]
     try:
-        return first_col.index("") 
+        return first_col[first_col == "."].index[0]
     except ValueError:
         return -1
