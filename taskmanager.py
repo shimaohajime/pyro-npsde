@@ -27,7 +27,7 @@ class Task:
             raise Exception(f"Task status has been modified by other process. Expected: {self.status.value}. Actual {to.value}")
         
         df.iloc[self.index, 0] = to.value 
-        df.to_csv(self.path)
+        df.to_csv(self.path, index=False)
         self.status = to 
         
         self.lock.release() 
@@ -35,7 +35,7 @@ class Task:
 def fetch_task_from_tasklist(lock, path):
 
     # Ensure that only one process accesses the file at a time 
-    lock.acquire() 
+    # lock.acquire() 
 
     try: 
         df = pd.read_csv(path)
@@ -52,12 +52,13 @@ def fetch_task_from_tasklist(lock, path):
                 pass 
 
         df.iloc[index, 0] = Task.TaskStatus.CLAIMED.value 
-        df.to_csv(path)
+        df.to_csv(path, index=False)
 
         return Task(lock, path, index, Task.TaskStatus.CLAIMED, row_dict) 
 
     finally:
-        lock.release() 
+        pass
+        # lock.release() 
 
         
 
@@ -66,5 +67,5 @@ def query_remaining_sim(df):
     first_col = df.iloc[:,0]
     try:
         return first_col[first_col == "."].index[0]
-    except ValueError:
+    except:
         return -1

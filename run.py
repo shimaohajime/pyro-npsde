@@ -44,10 +44,13 @@ def macro_cross_validation(state, n_splits = 5):
         utils.append_to_report(state, [f"[{datetime.datetime.now()}, pid {os.getpid()}] Cross-validation child process started"])
 
 def _subprocess(state):
-    print(f"[{datetime.datetime.now()}, pid {os.getpid()}] Child process started")
 
     state = copy(state) # Shallow copy 
-    task = taskmanager.fetch_task_from_tasklist(state.tasklist_lock, state["tasklist"]) 
+    task = taskmanager.fetch_task_from_tasklist(state['tasklist_lock'], state["tasklist"]) 
+
+    if not task:
+        return 
+
     utils.append_to_report(state, [f"[{datetime.datetime.now()}, pid {os.getpid()}] Child process started"])
     time.sleep(np.random.randint(3,7))
     task.update_status(taskmanager.Task.TaskStatus.COMPLETED)
@@ -58,7 +61,7 @@ def macro_parallel(state, n_processes = 5):
     workers = [] 
 
     for i in range(n_processes):
-        worker = Process(target=_subprocess, args=(state))
+        worker = Process(target=_subprocess, args=(state,))
         worker.start()
         workers += [worker]
 

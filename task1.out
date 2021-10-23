@@ -1,2 +1,12 @@
-Simulation began at 2021-10-23 11:40:46.186111
+Simulation began at 2021-10-23 13:55:18.247949
 Reset Time: True, Time Unit: 100.00
+[2021-10-23 13:55:19.435455, pid 4996] Child process started
+[2021-10-23 13:55:20.721953, pid 4588] Child process started
+[2021-10-23 13:55:21.924568, pid 2144] Child process started
+[2021-10-23 13:55:23.111991, pid 6080] Child process started
+[2021-10-23 13:55:24.291206, pid 3624] Child process started
+[2021-10-23 13:55:24.435462, pid 4996] Child process ended
+[2021-10-23 13:55:25.735120, pid 4588] Child process ended
+[2021-10-23 13:55:25.935015, pid 2144] Child process ended
+[2021-10-23 13:55:27.307910, pid 3624] Child process ended
+[2021-10-23 13:55:28.125682, pid 6080] Child process ended
