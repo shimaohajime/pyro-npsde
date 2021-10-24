@@ -9,7 +9,7 @@ from .kernels import OperatorKernel
 from .utils import plot_model
 
 def build_model(sess,t,Y,model='sde',sf0=1.0,ell0=[2,2],sfg0=1.0,ellg0=[1e5],
-             W=6,ktype="id",whiten=True,
+             W=6,ktype="id",whiten=True,s=1,
              fix_ell=False,fix_sf=False,fix_Z=False,fix_U=False,fix_sn=False,
              fix_ellg=False,fix_sfg=False,fix_Zg=True,fix_Ug=False):
     """ 
@@ -99,7 +99,7 @@ def build_model(sess,t,Y,model='sde',sf0=1.0,ell0=[2,2],sfg0=1.0,ellg0=[1e5],
         diffus = BrownianMotion(sf0=sfg0, ell0=ellg0, U0=Ug0, Z0=Z0, whiten=whiten,\
                fix_sf=fix_sfg, fix_ell=fix_ellg, fix_Z=fix_Zg, fix_U=fix_Ug)
         npde = NPSDE(Z0=Z0, U0=U0, sn0=sn0, kern=kern, diffus=diffus, whiten=whiten,\
-                  fix_Z=fix_Z, fix_U=fix_U, fix_sn=fix_sn)
+                  fix_Z=fix_Z, fix_U=fix_U, fix_sn=fix_sn, s=s)
         sess.run(tf.global_variables_initializer())
         return npde
 

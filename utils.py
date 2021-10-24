@@ -14,12 +14,14 @@ def append_to_report(state, lines):
     if "report" not in state:
         return 
 
-    # state["report_lock"].acquire() 
+    state["report_lock"].acquire() 
 
     with open(state["report"], "a") as f:
         for line in lines:
             f.write(line + "\n")
 
     f.close() 
-    # state["report_lock"].release() 
+    state["report_lock"].release() 
+
+
             

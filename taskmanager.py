@@ -18,7 +18,7 @@ class Task:
         self.status = status 
         self.args = args 
 
-    def update_status(self, to):
+    def update(self, to=None, columns=None):
         self.lock.acquire()
 
         df = pd.read_csv(self.path)
@@ -26,11 +26,18 @@ class Task:
         if df.iloc[self.index, 0] != self.status.value:
             raise Exception(f"Task status has been modified by other process. Expected: {self.status.value}. Actual {to.value}")
         
-        df.iloc[self.index, 0] = to.value 
+        if to:
+            df.iloc[self.index, 0] = to.value 
+
+        if columns:
+            for key, value in columns:
+                df.iloc[self.index, :].loc[key] = value 
+                
         df.to_csv(self.path, index=False)
         self.status = to 
         
         self.lock.release() 
+
 
 def fetch_task_from_tasklist(lock, path):
 

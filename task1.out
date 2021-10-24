@@ -1,12 +1,10 @@
-Simulation began at 2021-10-23 13:55:18.247949
+Simulation began at 2021-10-24 01:54:20.586752
+Applied standard scaling (normalization) to data entries
+Applied PCA to entries. Total explained variance:0.83
 Reset Time: True, Time Unit: 100.00
-[2021-10-23 13:55:19.435455, pid 4996] Child process started
-[2021-10-23 13:55:20.721953, pid 4588] Child process started
-[2021-10-23 13:55:21.924568, pid 2144] Child process started
-[2021-10-23 13:55:23.111991, pid 6080] Child process started
-[2021-10-23 13:55:24.291206, pid 3624] Child process started
-[2021-10-23 13:55:24.435462, pid 4996] Child process ended
-[2021-10-23 13:55:25.735120, pid 4588] Child process ended
-[2021-10-23 13:55:25.935015, pid 2144] Child process ended
-[2021-10-23 13:55:27.307910, pid 3624] Child process ended
-[2021-10-23 13:55:28.125682, pid 6080] Child process ended
+[2021-10-24 01:54:26.128295, pid 11556] Cross-validation child process started for Task 1
+[2021-10-24 01:54:34.543990, pid 916] Cross-validation child process started for Task 1
+[2021-10-24 01:54:55.457403, pid 8280] Cross-validation child process started for Task 1
+[2021-10-24 01:55:15.382310, pid 5584] Cross-validation child process started for Task 1
+[2021-10-24 01:55:49.984946, pid 10948] Cross-validation child process started for Task 1
+Cross-validation completed: nan
