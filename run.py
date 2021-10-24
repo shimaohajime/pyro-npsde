@@ -168,26 +168,26 @@ def begin_simulation(state_init, input_path, tasklist_path, report_path = None):
 if __name__ == "__main__":
 
     tf.get_logger().setLevel('INFO')
-    # parser = argparse.ArgumentParser('Macros for Seshat SDE inference research project')
-    # parser.add_argument("subroutine", type=str, help="[cross-validate]")
-    # parser.add_argument("algorithm", type=str, help="[yildiz/pyro]")
-    # parser.add_argument("data", type=str, help="Path to input data")
-    # parser.add_argument("--report", type=str, help="Path to report output")
-    # parser.add_argument("metadata", type=str, help="Path to metadata that describes the data")
-    # parser.add_argument("tasklist", type=str, help="Path to tasklist")
-    # parser.add_argument("n_process", type=int, help="Number of child processes to spawn")
+    parser = argparse.ArgumentParser('Macros for Seshat SDE inference research project')
+    parser.add_argument("subroutine", type=str, help="[cross-validate]")
+    parser.add_argument("algorithm", type=str, help="[yildiz/pyro]")
+    parser.add_argument("data", type=str, help="Path to input data")
+    parser.add_argument("--report", type=str, help="Path to report output")
+    parser.add_argument("metadata", type=str, help="Path to metadata that describes the data")
+    parser.add_argument("tasklist", type=str, help="Path to tasklist")
+    parser.add_argument("n_process", type=int, help="Number of child processes to spawn")
 
 
-    # args = parser.parse_args() 
+    args = vars(parser.parse_args()) 
 
-    args = {
-        "algorithm" : "yildiz",
-        "report" : "task1.out", 
-        "tasklist" : "tasks/yildiz_seshat_task1.csv",
-        "data" : "data/seshat_old_formatted.csv",
-        "metadata" : "data/seshat_old_metadata.json",
-        "n_process" : 5
-    }
+    # args = {
+    #     "algorithm" : "yildiz",
+    #     "report" : "task1.out", 
+    #     "tasklist" : "tasks/yildiz_seshat_task1.csv",
+    #     "data" : "data/seshat_old_formatted.csv",
+    #     "metadata" : "data/seshat_old_metadata.json",
+    #     "n_process" : 5
+    # }
 
     metf = open(args['metadata'], "r")
     metadata = json.load(metf)
@@ -200,11 +200,8 @@ if __name__ == "__main__":
 
     state = begin_simulation(state, args['data'], args['tasklist'], report_path = args['report'])
 
-    macro_cross_validation(state)
-
-    # macro_parallel(state, args['n_process'])
-    # if args.subroutine == "cross-validate":
-    #     macro_cross_validate(state)
+    if args['subroutine'] == "cross-validate":
+        macro_cross_validation(state)
     
 
         
