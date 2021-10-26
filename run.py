@@ -32,7 +32,7 @@ def macro_cross_validation(state, n_splits = 5):
         
         try:
             workers = [] 
-            workers_queue = multiprocessing.Queue
+            workers_queue = multiprocessing.Queue()
 
             preprocessing.apply_standardscaling(state)
             preprocessing.apply_pca(state)
@@ -201,7 +201,7 @@ if __name__ == "__main__":
     state = begin_simulation(state, args['data'], args['tasklist'], report_path = args['report'])
 
     if args['subroutine'] == "cross-validate":
-        macro_cross_validation(state)
+        macro_cross_validation(state, n_splits = args['n_process'])
     
 
         
