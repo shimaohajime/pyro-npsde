@@ -13,10 +13,9 @@ pip3 install -r requirements.txt
 
 ## How to use
 
-For information on parameters,
+Run this as a package (temporary)
 
 ```
-python run.py -h
+cd ../
+python -m pyro-npsde.src.pyro.npsde_pyro 
 ```
-
-### Run test subroutines
