@@ -13,6 +13,10 @@ from pyro.poutine import trace
 from pprint import pprint 
 from pyro.infer import SVI, Trace_ELBO
 
+# For testing
+from ... import utils 
+from ... import preprocessing
+
 class Kernel:
     '''
     Defines the RBF kernel used in Yildiz algorithm.
@@ -442,6 +446,10 @@ def pyro_npsde_run(df, components, steps, lr, Nw, sf_f,sf_g, ell_f, ell_g, W, fi
     return npsde.export_params() 
 
 if __name__ == "__main__":
-    pyro_npsde_run(pd.read_csv('data/seshat/Seshat_old_pca.csv'), ['PCA0', 'PCA1'], 150, 0.02, 20, 1, 1, [1,1], [1,1], 5, False, False, False, 0.1, "model1")
+    state = {} 
+    df = pd.read_csv(os.path.join(os.path.dirname(__file__), 'seshat.csv'))
+    state['df'] = df 
+    preprocessing.read_labeled_timeseries(state, reset_time=True, time_unit=100)
+    pyro_npsde_run(df, ['Data0', 'Data1'], 150, 0.02, 20, 1, 1, [1,1], [1,1], 5, False, False, False, 0.1, "model1")
 
 
