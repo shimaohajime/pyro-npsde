@@ -576,9 +576,8 @@ def pyro_npsde_run(X, n_vars, steps, lr, Nw, sf_f,sf_g, ell_f, ell_g, noise, W, 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('load', nargs=2)
+    parser.add_argument('load', nargs=3)
     parser.add_argument('--graph', nargs='?', const='output')
-    parser.add_argument('--train', default='test')
     parser.add_argument('--irreversibility', action='store_true')
     parser.add_argument('--imputation', nargs='?', const=[50,50])
     parser.add_argument('--perturbation', nargs=2, help='Two CSV files, containing starting points and observed points')
@@ -588,8 +587,13 @@ if __name__ == "__main__":
 
     # Load
     npsde = NPSDE.load_model(args.load[0])
-    time, data = pickle.load(open(args.load[1], 'rb'))
-
+    df = pd.read_csv(args.load[1])
+    metadata = pd.read_csv(args.load[2])
+    state = {
+        'df': df
+    }
+    preprocessing.read_labeled_timeseries(state, reset_time=True, time_unit=int(metadata['time_unit']), data_dim=2)
+    data, time = state['labeled_timeseries']
     X = format_input_from_timedata(time, data)
     
     if args.graph:
@@ -607,18 +611,18 @@ if __name__ == "__main__":
     if args.imputation:
 
         # TESTING
-        fraction_missing = 0.5
-        data_modified = artificially_remove_data(data, fraction_missing)
+        # fraction_missing = 0.5
+        # data_modified = artificially_remove_data(data, fraction_missing)
 
         series_MAP = []
-        series_linear = []
+        # series_linear = []
         for i in range(len(data)):
-            timeseries = np.concatenate([time[i].reshape(-1,1), data_modified[i]], axis=1)
+            timeseries = np.concatenate([time[i].reshape(-1,1), data[i]], axis=1)
             imputed_data_MAP = npsde.impute(timeseries, Nw=args.imputation[0], n_steps=args.imputation[1])[0].T
             series_MAP += [imputed_data_MAP]
-            imputed_timeseries_linear = impute_linear(timeseries)
-            imputed_data_linear = imputed_timeseries_linear[:,1:]
-            series_linear += [imputed_data_linear]
+            # imputed_timeseries_linear = impute_linear(timeseries)
+            # imputed_data_linear = imputed_timeseries_linear[:,1:]
+            # series_linear += [imputed_data_linear]
 
         n_cols = int(math.sqrt(len(data)))
         n_rows = int(math.ceil(len(data)/n_cols))
@@ -627,16 +631,13 @@ if __name__ == "__main__":
 
         for i in range(len(data)):
             plt.subplot(n_rows, n_cols, i+1)
-            plt.plot(data[i][:,0], data[i][:,1], label='Actual')
-            plt.plot(series_linear[i][:,0], series_linear[i][:,1], label='Linear')
+            # plt.plot(data[i][:,0], data[i][:,1], label='Actual')
+            # plt.plot(series_linear[i][:,0], series_linear[i][:,1], label='Linear')
             plt.plot(series_MAP[i][:,0], series_MAP[i][:,1], label='MAP')
 
-        plt.legend()
-
-        print(series_MAP[0])
-        print(data[0])
-        print('Mean squared error (MAP): ', np.mean(np.concatenate([ np.sum((x - data[i])**2, axis=1) for i,x in enumerate(series_MAP)])))
-        print('Mean squared error (Linear): ', np.mean(np.concatenate([ np.sum((x - data[i])**2, axis=1) for i,x in enumerate(series_linear)])))
+        # plt.legend()
+        # print('Mean squared error (MAP): ', np.mean(np.concatenate([ np.sum((x - data[i])**2, axis=1) for i,x in enumerate(series_MAP)])))
+        # print('Mean squared error (Linear): ', np.mean(np.concatenate([ np.sum((x - data[i])**2, axis=1) for i,x in enumerate(series_linear)])))
 
         plt.show()
 
