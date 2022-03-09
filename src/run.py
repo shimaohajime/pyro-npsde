@@ -18,7 +18,7 @@ from npsde_pyro import format_input_from_timedata, pyro_npsde_run
 from sklearn.model_selection import KFold
 
 
-def macro_cross_validation(state, n_splits = 5):
+def macro_cross_validation(state, n_splits = 5, scale_and_pca = False):
 
     l = Lock()
 
@@ -34,8 +34,9 @@ def macro_cross_validation(state, n_splits = 5):
             workers = []
             workers_queue = multiprocessing.Queue()
 
-            preprocessing.apply_standardscaling(state)
-            preprocessing.apply_pca(state)
+            if scale_and_pca:
+                preprocessing.apply_standardscaling(state)
+                preprocessing.apply_pca(state)
             preprocessing.read_labeled_timeseries(state, reset_time = True, time_unit = state["metadata"]["time_unit"] if "time_unit" in state["metadata"] else 1)
 
 
@@ -73,16 +74,17 @@ def macro_cross_validation(state, n_splits = 5):
             utils.append_to_report(state, [f"[{datetime.datetime.now()}, task {task.index}]Cross-validation error encountered: {str(e)}"])
 
 
-def macro_parallel_run(state, n_child = 5):
+def macro_parallel_run(state, n_child = 5, scale_and_pca = False):
 
     l = Lock()
 
     workers = []
     workers_queue = multiprocessing.Queue()
 
-    preprocessing.apply_standardscaling(state)
-    preprocessing.apply_pca(state)
-    preprocessing.read_labeled_timeseries(state, reset_time = True, time_unit = state["metadata"]["time_unit"] if "time_unit" in state["metadata"] else 1)
+    if scale_and_pca:
+        preprocessing.apply_standardscaling(state)
+        preprocessing.apply_pca(state)
+    preprocessing.read_labeled_timeseries(state, reset_time = True, time_unit = state["metadata"]["time_unit"] if "time_unit" in state["metadata"] else 1, data_dim=2)
 
     (time_column, data_columns) = state['labeled_timeseries']
     time_column = np.array(time_column)
@@ -192,10 +194,10 @@ def _run_and_plot(lock, state, train_set, q):
                 model.plot_model(X, '%s' % index, Nw=3)
                 utils.append_to_report(state, [f"[{datetime.datetime.now()}, pid {os.getpid()}] Run-and-plot completed for Task {index}"])
 
-            task.update(lock, to=taskmanager.Task.TaskStatus.COMPLETED)
+            task.update(to=taskmanager.Task.TaskStatus.COMPLETED)
             
         except Exception as e:
-            task.update(lock, to=taskmanager.Task.TaskStatus.ERROR)
+            task.update(to=taskmanager.Task.TaskStatus.ERROR)
             utils.append_to_report(state, [f"[{datetime.datetime.now()}, task {index}] Error encountered: {str(e)}"])
 
 
@@ -230,10 +232,11 @@ if __name__ == "__main__":
     parser.add_argument("subroutine", type=str, help="[cross-validate]")
     parser.add_argument("algorithm", type=str, help="[yildiz/pyro]")
     parser.add_argument("data", type=str, help="Path to input data")
-    parser.add_argument("--report", type=str, help="Path to report output")
     parser.add_argument("metadata", type=str, help="Path to metadata that describes the data")
     parser.add_argument("tasklist", type=str, help="Path to tasklist")
     parser.add_argument("n_process", type=int, help="Number of child processes to spawn")
+    parser.add_argument("--report", type=str, help="Path to report output")
+    parser.add_argument("--scale_and_pca", action='store_true', help='Apply standard scaling and PCA to input data')
 
 
     args = vars(parser.parse_args())
@@ -259,6 +262,6 @@ if __name__ == "__main__":
     state = begin_simulation(state, args['data'], args['tasklist'], report_path = args['report'])
 
     if args['subroutine'] == "cross-validate":
-        macro_cross_validation(state, n_splits = args['n_process'])
+        macro_cross_validation(state, n_splits = args['n_process'], scale_and_pca= args['scale_and_pca'])
     elif args['subroutine'] == "parallel-run":
-        macro_parallel_run(state, n_child = args['n_process'])
+        macro_parallel_run(state, n_child = args['n_process'], scale_and_pca= args['scale_and_pca'])

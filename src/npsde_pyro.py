@@ -20,6 +20,7 @@ from pyro.infer import SVI, Trace_ELBO
 from sklearn.neighbors import KernelDensity
 import utils
 import preprocessing
+import json 
 
 class Kernel:
     '''
@@ -54,10 +55,9 @@ class NPSDE():
     Implementation of Yildiz NPSDE algorithm.
     '''
 
-    hyperparameters = ['sf_f','sf_g','ell_f','ell_g','Z','fix_sf','fix_ell','fix_Z','delta_t','jitter', 'noise', 'n_vars']
-    diffusion_dimensions = 2
+    hyperparameters = ['sf_f','sf_g','ell_f','ell_g','n_grids','fix_sf','fix_ell','fix_Z','delta_t','jitter', 'noise', 'n_vars']
 
-    def __init__(self,n_vars,sf_f,sf_g,ell_f,ell_g,noise,Z,fix_sf,fix_ell,fix_Z,delta_t,jitter):
+    def __init__(self,n_vars,sf_f,sf_g,ell_f,ell_g,noise,n_grids,fix_sf,fix_ell,fix_Z,delta_t,jitter):
 
         self.n_vars = n_vars
 
@@ -66,9 +66,7 @@ class NPSDE():
         self.sf_g = sf_g
         self.ell_f = ell_f
         self.ell_g = ell_g
-        self.Z = Z
-        self.Zg = self.Z #Inducing location for drift and diffusion are set same.
-
+    
         ##For save_model
         self.fix_sf = fix_sf
         self.fix_ell = fix_ell
@@ -76,12 +74,29 @@ class NPSDE():
 
         self.noise = noise
 
-        self.n_grid = Z.shape[0]
+        self.n_grids = n_grids
         self.delta_t = delta_t #Euler-Maruyama time discretization.
         self.jitter = jitter
 
+
+        ##For MAP-based SVI 
+        self.Z = torch.zeros([self.n_grids, self.n_vars])
+        self.Zg = torch.zeros([self.n_grids, self.n_vars])
+        self.U_map = torch.zeros([self.n_grids, self.n_vars])
+        self.Ug_map = torch.ones([self.n_grids, self.n_vars]) 
+
         ##For imputation
         self.nodes = []
+
+    def initialize_ZU(self, Z=None, Zg=None, U_map=None, Ug_map=None):
+        if Z is not None:
+            self.Z = Z 
+        if Zg is not None:
+            self.Zg = Zg 
+        if U_map is not None:
+            self.U_map = U_map 
+        if Ug_map is not None:
+           self.Ug_map = Ug_map
 
     def compute_f(self, X, U, Z, kernel):
         N = X.shape[0]
@@ -118,7 +133,7 @@ class NPSDE():
         ell_f = self.ell_f if self.fix_ell else pyro.param('ell_f', self.ell_f)
         ell_g = self.ell_g if self.fix_ell else pyro.param('ell_g', self.ell_g)
         Z = self.Z if self.fix_Z else pyro.param('Z', self.Z)
-        Zg = self.Zg if self.fix_Z else pyro.param('Z', self.Z)
+        Zg = self.Zg if self.fix_Z else pyro.param('Zg', self.Zg)
         kernel_f = Kernel(sf_f, ell_f)
         kernel_g = Kernel(sf_g, ell_g)
         return self.calc_drift_diffusion(X, pyro.param('U_map'), pyro.param('Ug_map'), Z, Zg, kernel_f, kernel_g)
@@ -148,22 +163,23 @@ class NPSDE():
         ell_f = self.ell_f if self.fix_ell else pyro.param('ell_f', self.ell_f)
         ell_g = self.ell_g if self.fix_ell else pyro.param('ell_g', self.ell_g)
         Z = self.Z if self.fix_Z else pyro.param('Z', self.Z)
-        Zg = self.Zg if self.fix_Z else pyro.param('Z', self.Z)
+        Zg = self.Zg if self.fix_Z else pyro.param('Zg', self.Zg)
         noise = pyro.param('noise', self.noise)
 
         ##Define kernels
         kernel_f = Kernel(sf_f, ell_f)
         kernel_g = Kernel(sf_g, ell_g)
         ##Inducing vectors, which are the main parameters to be estimated
-        U = pyro.sample('U', dist.Normal(torch.zeros([self.n_grid,self.n_vars]), torch.ones([self.n_grid,self.n_vars])+1 ).to_event(1).to_event(1) ) #Prior should be matched to Yildiz?
-        Ug = pyro.sample('Ug', dist.Normal(torch.ones([self.n_grid,NPSDE.diffusion_dimensions]), torch.ones([self.n_grid,NPSDE.diffusion_dimensions] )).to_event(1).to_event(1) )#,constraint=constraints.positive #Prior should be matched to Yildiz?
+       
+        U = pyro.sample('U', dist.Normal(torch.zeros([self.n_grids,self.n_vars]), torch.ones([self.n_grids,self.n_vars])+1 ).to_event(1).to_event(1) ) #Prior should be matched to Yildiz?
+        Ug = pyro.sample('Ug', dist.Normal(torch.ones([self.n_grids,self.n_vars]), torch.ones([self.n_grids,self.n_vars] )).to_event(1).to_event(1) )#,constraint=constraints.positive #Prior should be matched to Yildiz?
 
         ##Euler-Maruyama sampling
         Xt = torch.tensor(X[X[:,0]==0][:, 1:])
         timestamps = np.arange(delta_t, t_max+delta_t, delta_t)
         for i, t in enumerate(timestamps):
             f,g = self.calc_drift_diffusion(Xt, U, Ug, Z, Zg, kernel_f, kernel_g)
-
+          
             Xt = pyro.sample('Xseq_{}'.format(i), dist.Normal(Xt + f * delta_t, g * torch.sqrt(torch.tensor([delta_t])) + torch.ones(g.shape) * self.jitter ).to_event(1).to_event(1)   )#Needs to be MultiVariate and iterate over sample to allow covariance.
             ##For t in the observed time step, find the observed variables and condition on the data.
             if t in t_grid:
@@ -193,14 +209,20 @@ class NPSDE():
         t_max = X[:,0].max()
         t_grid = np.arange(t_max)
 
+
+        # Initialize parameters in param_store if not already loaded 
         sf_f = self.sf_f if self.fix_sf else pyro.param('sf_f', self.sf_f)
         sf_g = self.sf_g if self.fix_sf else pyro.param('sf_g', self.sf_g)
         ell_f = self.ell_f if self.fix_ell else pyro.param('ell_f', self.ell_f)
         ell_g = self.ell_g if self.fix_ell else pyro.param('ell_g', self.ell_g)
+
         Z = self.Z if self.fix_Z else pyro.param('Z', self.Z)
-        Zg = self.Zg if self.fix_Z else pyro.param('Z', self.Z)
-        U_map = pyro.param('U_map', torch.zeros([self.n_grid,self.n_vars]) )
-        Ug_map = pyro.param('Ug_map', torch.ones([self.n_grid,NPSDE.diffusion_dimensions])  , constraint=constraints.positive)
+        Zg = self.Zg if self.fix_Z else pyro.param('Zg', self.Zg)
+        
+        U_map = pyro.param("U_map", self.U_map)
+        Ug_map = pyro.param("Ug_map", self.Ug_map, constraint=constraints.positive)
+        U = pyro.sample("U", dist.Delta(U_map).to_event(1).to_event(1))
+        Ug = pyro.sample("Ug", dist.Delta(Ug_map).to_event(1).to_event(1))
 
         ##Define kernels
         kernel_f = Kernel(sf_f, ell_f)
@@ -221,13 +243,11 @@ class NPSDE():
                 self.nodes = ['Xnode_{}'.format(i) for i in range(len(timestamps))]
 
 
-        # U_cov_matrix = pyro.param('U_cov_matrix', torch.stack([torch.eye(self.n_vars) for _ in range(self.n_grid)]) , constraint=constraints.positive_definite)
-        # Ug_cov_matrix = pyro.param('Ug_cov_matrix', torch.stack([torch.eye(NPSDE.diffusion_dimensions) for _ in range(self.n_grid)]), constraint=constraints.positive_definite)
+        # U_cov_matrix = pyro.param('U_cov_matrix', torch.stack([torch.eye(self.n_vars) for _ in range(self.n_grids)]) , constraint=constraints.positive_definite)
+        # Ug_cov_matrix = pyro.param('Ug_cov_matrix', torch.stack([torch.eye(NPSDE.diffusion_dimensions) for _ in range(self.n_grids)]), constraint=constraints.positive_definite)
 
         # U = pyro.sample("U", dist.MultivariateNormal(U_map, U_cov_matrix).to_event(1))
         # Ug = pyro.sample("Ug", dist.MultivariateNormal(Ug_map, Ug_cov_matrix).to_event(1))
-        U = pyro.sample("U", dist.Delta(U_map).to_event(1).to_event(1))
-        Ug = pyro.sample("Ug", dist.Delta(Ug_map).to_event(1).to_event(1))
 
         ##Euler-Maruyama sampling
 
@@ -235,16 +255,17 @@ class NPSDE():
         Xt_final = torch.tensor(X[X[:,0]==t_max][:, 1:])
 
         Xt = deepcopy(Xt_initial)
-
+      
         for i,t in enumerate(timestamps):
             f,g = self.calc_drift_diffusion(Xt, U, Ug, Z, Zg, kernel_f, kernel_g)
+          
             if fix_inducers:
                 linear_interp = ((len(timestamps)-1-i) * Xt_initial + (i) * Xt_final)/(len(timestamps)-1)
                 linear_interp.requires_grad_()
                 Xt_MAP = pyro.param('Xnode_{}'.format(i), linear_interp)#Needs to be MultiVariate and iterate over sample to allow covariance.
                 Xt = pyro.sample('Xseq_{}'.format(i), dist.Delta(Xt_MAP).to_event(1).to_event(1))
             else:
-                Xt = pyro.sample('Xseq_{}'.format(i), dist.Normal(Xt + f * delta_t, g * torch.sqrt(torch.tensor([delta_t])) ).to_event(1).to_event(1)  )#Needs to be MultiVariate and iterate over sample to allow covariance.
+                Xt = pyro.sample('Xseq_{}'.format(i), dist.Normal(Xt + f * delta_t, g * torch.sqrt(torch.tensor([delta_t])) + self.jitter).to_event(1).to_event(1)  )#Needs to be MultiVariate and iterate over sample to allow covariance.
             # piecewise
             if guided:
               if t in t_grid:
@@ -556,23 +577,46 @@ def impute_linear(snippet):
 
 
 
-def pyro_npsde_run(X, n_vars, steps, lr, Nw, sf_f,sf_g, ell_f, ell_g, noise, W, fix_sf, fix_ell, fix_Z, delta_t, save_model=None):
+def pyro_npsde_run(X, n_vars, steps, lr, Nw, sf_f,sf_g, ell_f, ell_g, noise, W, fix_sf, fix_ell, fix_Z, delta_t, save_model=None, Z=None, Zg=None, U_map=None, Ug_map=None):
 
     pyro.clear_param_store()
 
 
-    Zx_, Zy_ = np.meshgrid( np.linspace(np.nanmin(X[:,1]), np.nanmax(X[:,1]),W), np.linspace(np.nanmin(X[:,2]), np.nanmax(X[:,2]),W) )
-    Z = torch.tensor( np.c_[Zx_.flatten(), Zy_.flatten()].astype(np.float32) )
+    if all([y is None for y in [Z, Zg, U_map, Ug_map] ]):
+        Zx_, Zy_ = np.meshgrid( np.linspace(np.nanmin(X[:,1]), np.nanmax(X[:,1]),W), np.linspace(np.nanmin(X[:,2]), np.nanmax(X[:,2]),W) )
+        Z = torch.tensor( np.c_[Zx_.flatten(), Zy_.flatten()].astype(np.float32) )
+        Zg = deepcopy(Z)
+        U_map = None 
+        Ug_map = torch.ones([W*W, n_vars]) * max(abs(Zg[0,0] - Zg[0,1]), abs(Zg[0,0] - Zg[1,0])) 
 
-    npsde = NPSDE(n_vars=n_vars,noise=torch.tensor(noise,dtype=torch.float32),sf_f=torch.tensor(sf_f,dtype=torch.float32),sf_g=torch.tensor(sf_g,dtype=torch.float32),ell_f=torch.tensor((ell_f),dtype=torch.float32),ell_g=torch.tensor((ell_g),dtype=torch.float32),Z=Z,fix_sf=int(fix_sf),fix_ell=int(fix_ell),fix_Z=int(fix_Z),delta_t=float(delta_t),jitter=1e-6)
+    npsde = NPSDE(n_vars=n_vars,n_grids=W*W,noise=torch.tensor(noise,dtype=torch.float32),sf_f=torch.tensor(sf_f,dtype=torch.float32),sf_g=torch.tensor(sf_g,dtype=torch.float32),ell_f=torch.tensor((ell_f),dtype=torch.float32),ell_g=torch.tensor((ell_g),dtype=torch.float32),fix_sf=int(fix_sf),fix_ell=int(fix_ell),fix_Z=int(fix_Z),delta_t=float(delta_t),jitter=1e-6)
+    npsde.initialize_ZU(Z = Z, Zg = Zg, U_map=U_map, Ug_map=Ug_map) 
 
     npsde.train(X, n_steps=steps, lr=lr, Nw=Nw)
 
     npsde.save_model('%s.pt' % save_model)
-    # npsde.plot_model(X, '%s' % prefix, Nw=1)
 
     return npsde # npsde.export_params()
 
+def TEST_load_vf():
+    df = pd.read_csv('../data/seshat_old_formatted.csv')
+    metadata = json.load(open('../data/seshat_old_metadata.json', 'r'))
+    state = {
+        'df': df
+    }
+    preprocessing.apply_standardscaling(state)
+    preprocessing.apply_pca(state)
+    preprocessing.read_labeled_timeseries(state, reset_time=True, time_unit=int(metadata['time_unit']), data_dim=2)
+    time, data = state['labeled_timeseries']
+    X = format_input_from_timedata(time, data)
+    X[:, 1:] = -X[:, 1:]
+    yildiz_vf = pd.read_csv('../data/yildiz_vf_.csv')
+    npsde = pyro_npsde_run(X, 2, 50, 0.02, 50, 1, 0.2, [1.0, 1.0], 0.5, [1.0, 1.0], 3, 0, 0, 0, 0.1, \
+    save_model='seshat_loadvf', Z=torch.tensor(np.c_[yildiz_vf['locx'], yildiz_vf['locy']], dtype=torch.float32), \
+        Zg=torch.tensor(np.c_[yildiz_vf['locx'], yildiz_vf['locy']], dtype=torch.float32), U_map=torch.tensor(np.c_[yildiz_vf['vecx'], yildiz_vf['vecy']], dtype=torch.float32))
+    
+    npsde.plot_model(X, "seshat_loadvf", Nw=1)
+    
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -588,12 +632,12 @@ if __name__ == "__main__":
     # Load
     npsde = NPSDE.load_model(args.load[0])
     df = pd.read_csv(args.load[1])
-    metadata = pd.read_csv(args.load[2])
+    metadata = json.load(args.load[2])
     state = {
         'df': df
     }
     preprocessing.read_labeled_timeseries(state, reset_time=True, time_unit=int(metadata['time_unit']), data_dim=2)
-    data, time = state['labeled_timeseries']
+    time, data = state['labeled_timeseries']
     X = format_input_from_timedata(time, data)
     
     if args.graph:
