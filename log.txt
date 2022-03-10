@@ -1,0 +1,6 @@
+Simulation began at 2022-03-09 16:34:32.688134
+Reset Time: True, Time Unit: 1.00
+[2022-03-09 16:34:34.197458, pid 60273] Run-and-plot started for Task 0
+[2022-03-09 16:35:07.170520, pid 60273] Run-and-plot completed for Task 0
+No remaining tasks.
+[2022-03-09 16:35:07.652987] Run-and-plot completed.

@@ -1,0 +1,8 @@
+pytest
+adjustText
+pyro-ppl
+sklearn
+numpy
+pandas
+scipy 
+matplotlib
