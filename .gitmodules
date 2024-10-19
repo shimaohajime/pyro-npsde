@@ -1,0 +1,3 @@
+[submodule "yildiz-inference/yildiz"]
+	path = yildiz-inference/yildiz
+	url = https://github.com/cagatayyildiz/npde.git
